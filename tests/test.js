@@ -11,6 +11,8 @@ const chai = require('chai');
 const expect = chai.expect;
 
 let token;
+let note;
+const user = "628824ff1837f63d11c182af";
 
 
 describe('Test for api', () => {
@@ -248,27 +250,75 @@ describe('Test for api', () => {
     });
 
     describe("Test for notes", () => {
-        describe("Test for Notes", () => {
-            // Get All, Get, post, put and delete
-            describe("Test for get all notes", () => {
-                beforeEach(async () => {
-                    await Note.deleteMany({});
-                    await Note.insertMany(new Note({
-                        title: 'test'
-                    }));
-                });
-                it("Should return success for get all notes", async () => {
-                    const response = await request(app)
-                        .get('/notes/notes')
-                        .set('Authorization', token);
-                    expect(response.statusCode).to.equal(200);
-                    expect(response.body.success).to.equal(true);
-                    expect(response.body.notes).to.not.equal(null);
-                });
+        describe("Test for create note", () => {
+            it('Should create a note', async () => {
+                const response = await request(app)
+                    .post('/notes/note')
+                    .set('Authorization', token)
+                    .send({
+                        title: 'test',
+                        content: 'test'
+                    });
+                expect(response.statusCode).to.equal(200);
+                expect(response.body.success).to.equal(true);
+                expect(response.body.message).to.equal('Note created');
+                note = response.body.note._id;
+            });
+            it('Should return fail to create note (no token)', async () => {
+                const response = await request(app)
+                    .post('/notes/note')
+                    .send({
+                        title: 'test',
+                        content: 'test'
+                    });
+                expect(response.statusCode).to.equal(403);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('No token provided');
+            });
+            it('Should return fail to create note (invalid format token)', async () => {
+                const response = await request(app)
+                    .post('/notes/note')
+                    .set('Authorization', token + "bad_token")
+                    .send({
+                        title: 'test',
+                        content: 'test'
+                    });
+                expect(response.statusCode).to.equal(403);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('Invalid format token');
+            });
+
+        });
+        // Get All, Get, post, put and delete
+        describe("Test to get all notes", () => {
+            it("Should return success to get all notes", async () => {
+                const response = await request(app)
+                    .get('/notes/notes')
+                    .set('Authorization', token);
+                expect(response.statusCode).to.equal(200);
+                expect(response.body.success).to.equal(true);
+                expect(response.body.notes).to.not.equal(null);
+            });
+            it("Should return fail to get all notes (No authorization)", async () => {
+                const response = await request(app)
+                    .get('/notes/notes');
+                expect(response.statusCode).to.equal(403);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('No token provided');
             });
         });
-        describe("Test for SubNotes", () => {
-            // Get, post, put and delete
+        describe("Test to get a note", () => {
+            it("Should return success to get a note", async () => {
+                const response = await request(app)
+                    .get('/notes/note')
+                    .set('Authorization', token)
+                    .send({
+                        id_note: note
+                    });
+                expect(response.statusCode).to.equal(200);
+                expect(response.body.success).to.equal(true);
+                expect(response.body.message).to.equal('Note found');
+            });
         });
     });
 });
