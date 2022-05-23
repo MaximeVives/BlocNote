@@ -125,7 +125,6 @@ async function reset_token(req, res) {
         })
     }
     password = bcrypt.compareSync(password, user.password);
-    console.log(password);
     if (!password) {
         return res.status(400).json({
             success: false,
