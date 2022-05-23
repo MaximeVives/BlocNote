@@ -14,6 +14,8 @@ let token;
 let note;
 const user = "628824ff1837f63d11c182af";
 
+// TODO: Generate unit test for checking bad id in request
+
 
 describe('Test for api', () => {
     before(async () => {
@@ -297,6 +299,7 @@ describe('Test for api', () => {
                     .set('Authorization', token);
                 expect(response.statusCode).to.equal(200);
                 expect(response.body.success).to.equal(true);
+                expect(response.body.message).to.equal('Notes found');
                 expect(response.body.notes).to.not.equal(null);
             });
             it("Should return fail to get all notes (No authorization)", async () => {
@@ -319,6 +322,368 @@ describe('Test for api', () => {
                 expect(response.body.success).to.equal(true);
                 expect(response.body.message).to.equal('Note found');
             });
+            it("Should return fail to get a note (No authorization)", async () => {
+                const response = await request(app)
+                    .get('/notes/note')
+                    .send({
+                        id_note: note
+                    });
+                expect(response.statusCode).to.equal(403);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('No token provided');
+            });
+            it("Should return fail to get a note (No id)", async () => {
+                const response = await request(app)
+                    .get('/notes/note')
+                    .set('Authorization', token);
+                expect(response.statusCode).to.equal(400);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('Please enter all fields');
+            });
+            it("Should return fail to get a note (Bad id)", async () => {
+                const response = await request(app)
+                    .get('/notes/note')
+                    .set('Authorization', token)
+                    .send({
+                        id_note: "note"
+                    });
+                expect(response.statusCode).to.equal(400);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('Note not found');
+            });
+        });
+        describe("Test to update a note", () => {
+            it("Should return success to update a note", async () => {
+                const response = await request(app)
+                    .put('/notes/note')
+                    .set('Authorization', token)
+                    .send({
+                        id_note: note,
+                        title: 'test_update',
+                        content: 'test_update'
+                    });
+                expect(response.statusCode).to.equal(200);
+                expect(response.body.success).to.equal(true);
+                expect(response.body.message).to.equal('Note updated');
+                expect(response.body.note.title).to.equal('test_update');
+            });
+            it("Should return fail to update a note (No authorization)", async () => {
+                const response = await request(app)
+                    .put('/notes/note')
+                    .send({
+                        id_note: note,
+                        title: 'test_update',
+                        content: 'test_update'
+                    });
+                expect(response.statusCode).to.equal(403);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('No token provided');
+            });
+            it("Should return fail to update a note (No id)", async () => {
+                const response = await request(app)
+                    .put('/notes/note')
+                    .set('Authorization', token)
+                    .send({
+                        title: 'test_update',
+                        content: 'test_update'
+                    });
+                expect(response.statusCode).to.equal(400);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('Note not found');
+            });
+            it("Should return fail to update a note (Bad id)", async () => {
+                const response = await request(app)
+                    .put('/notes/note')
+                    .set('Authorization', token)
+                    .send({
+                        id_note: "note",
+                        title: 'test_update',
+                        content: 'test_update'
+                    });
+                expect(response.statusCode).to.equal(400);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('Note not found');
+            });
+            it("Should return fail to update a note (No title)", async () => {
+                const response = await request(app)
+                    .put('/notes/note')
+                    .set('Authorization', token)
+                    .send({
+                        id_note: note,
+                        content: 'test_update'
+                    });
+                expect(response.statusCode).to.equal(400);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('Complete all fields');
+            });
+            it("Should return success to update a note (No content)", async () => {
+                const response = await request(app)
+                    .put('/notes/note')
+                    .set('Authorization', token)
+                    .send({
+                        id_note: note,
+                        title: 'test_update'
+                    });
+                expect(response.statusCode).to.equal(200);
+                expect(response.body.success).to.equal(true);
+                expect(response.body.message).to.equal('Note updated');
+                expect(response.body.note.title).to.equal('test_update');
+            });
+        });
+        describe("Test to delete a note", () => {
+            it("Should return success to delete a note", async () => {
+                const response = await request(app)
+                    .delete('/notes/note')
+                    .set('Authorization', token)
+                    .send({
+                        id_note: note
+                    });
+                expect(response.statusCode).to.equal(200);
+                expect(response.body.success).to.equal(true);
+                expect(response.body.message).to.equal('Note deleted');
+            });
+            it("Should return fail to delete a note (No authorization)", async () => {
+                const response = await request(app)
+                    .delete('/notes/note')
+                    .send({
+                        id_note: note
+                    });
+                expect(response.statusCode).to.equal(403);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('No token provided');
+            });
+            it("Should return fail to delete a note (No id)", async () => {
+                const response = await request(app)
+                    .delete('/notes/note')
+                    .set('Authorization', token);
+                expect(response.statusCode).to.equal(400);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('Note not found');
+            });
+        });
+    });
+
+    describe("Test for subnotes", () => {
+        let note;
+        let subnote;
+        beforeEach(async () => {
+            note = await Note.create({
+                title: 'test_note',
+                content: 'test_note',
+                user_id: user
+            })
+        });
+        afterEach(async () => {
+            await Note.deleteOne({
+                where: {
+                    id_note: note._id
+                }
+            });
+        });
+        describe("Test to create a subnote", () => {
+            it("Should return success to create a subnote", async () => {
+                const response = await request(app)
+                    .post('/notes/subnote')
+                    .set('Authorization', token)
+                    .send({
+                        id_note: note,
+                        content: 'test_subnote'
+                    });
+                expect(response.statusCode).to.equal(200);
+                expect(response.body.success).to.equal(true);
+                expect(response.body.message).to.equal('Subnote created');
+                subnote = response.body.subnote;
+                // expect(response.body.subnote.title).to.equal('test_subnote');
+            });
+            it("Should return fail to create a subnote (No authorization)", async () => {
+                const response = await request(app)
+                    .post('/notes/subnote')
+                    .send({
+                        id_note: note,
+                        content: 'test_subnote'
+                    });
+                expect(response.statusCode).to.equal(403);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('No token provided');
+            });
+            it("Should return fail to create a subnote (No id)", async () => {
+                const response = await request(app)
+                    .post('/notes/subnote')
+                    .set('Authorization', token)
+                    .send({
+                        content: 'test_subnote'
+                    });
+                expect(response.statusCode).to.equal(400);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('Complete all fields');
+            });
+            it("Should return success to create a subnote (No content)", async () => {
+                const response = await request(app)
+                    .post('/notes/subnote')
+                    .set('Authorization', token)
+                    .send({
+                        id_note: note
+                    });
+                expect(response.statusCode).to.equal(400);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('Complete all fields');
+            });
+        });
+        describe("Test to get a subnote", () => {
+            it("Should return success to get a subnote", async () => {
+                const response = await request(app)
+                    .get('/notes/subnote')
+                    .set('Authorization', token)
+                    .send({
+                        id_sub_note: subnote._id
+                    });
+                expect(response.statusCode).to.equal(200);
+                expect(response.body.success).to.equal(true);
+                expect(response.body.message).to.equal('Subnote found');
+            });
+            it("Should return fail to get a subnote (No authorization)", async () => {
+                const response = await request(app)
+                    .get('/notes/subnote')
+                    .send({
+                        id_sub_note: subnote._id
+                    });
+                expect(response.statusCode).to.equal(403);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('No token provided');
+            });
+            it("Should return fail to get a subnote (No id)", async () => {
+                const response = await request(app)
+                    .get('/notes/subnote')
+                    .set('Authorization', token);
+                expect(response.statusCode).to.equal(400);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('Subnote not found');
+            });
+            it("Should return fail to get a subnote (Invalid id)", async () => {
+                const response = await request(app)
+                    .get('/notes/subnote')
+                    .set('Authorization', token)
+                    .send({
+                        id_sub_note: 'invalid_id'
+                    });
+                expect(response.statusCode).to.equal(400);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('Subnote not found');
+            });
+        });
+        describe("Test to update a subnote", () => {
+            it("Should return success to update a subnote", async () => {
+                const response = await request(app)
+                    .put('/notes/subnote')
+                    .set('Authorization', token)
+                    .send({
+                        id_sub_note: subnote._id,
+                        content: 'test_update',
+                        id_note: note._id,
+                        title: "test_update"
+                    });
+                expect(response.statusCode).to.equal(200);
+                expect(response.body.success).to.equal(true);
+                expect(response.body.message).to.equal('Subnote updated');
+                expect(response.body.subnote.content).to.equal('test_update');
+            });
+            it("Should return fail to update a subnote (No authorization)", async () => {
+                const response = await request(app)
+                    .put('/notes/subnote')
+                    .send({
+                        id_sub_note: subnote._id,
+                        content: 'test_update',
+                        id_note: note._id,
+                        title: "test_update"
+                    });
+                expect(response.statusCode).to.equal(403);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('No token provided');
+            });
+            it("Should return fail to update a subnote (Bad id_sub_note)", async () => {
+                const response = await request(app)
+                    .put('/notes/subnote')
+                    .set('Authorization', token)
+                    .send({
+                        id_sub_note: 'invalid_id',
+                        content: 'test_update',
+                        id_note: note._id,
+                        title: "test_update"
+                    });
+                expect(response.statusCode).to.equal(400);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('Invalid Note or Subnote id');
+            });
+
+            it("Should return fail to update a subnote (Bad id_note)", async () => {
+               const response = await request(app)
+                    .put('/notes/subnote')
+                    .set('Authorization', token)
+                    .send({
+                        id_sub_note: subnote._id,
+                        content: 'test_update',
+                        id_note: 'invalid_id',
+                        title: "test_update"
+                    });
+                expect(response.statusCode).to.equal(400);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('Invalid Note or Subnote id');
+            });
+
+            it("Should return fail to update a subnote (No id)", async () => {
+                const response = await request(app)
+                    .put('/notes/subnote')
+                    .set('Authorization', token)
+                    .send({
+                        content: 'test_update',
+                        id_note: note._id,
+                        title: "test_update"
+                    });
+                expect(response.statusCode).to.equal(400);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('Id note not found');
+            });
+            it("Should return fail to update a subnote (No content)", async () => {
+                const response = await request(app)
+                    .put('/notes/subnote')
+                    .set('Authorization', token)
+                    .send({
+                        id_sub_note: subnote._id,
+                        id_note: note._id,
+                        title: "test_update"
+                    });
+                expect(response.statusCode).to.equal(200);
+                expect(response.body.success).to.equal(true);
+                expect(response.body.message).to.equal('Subnote updated');
+            });
+            it("Should return fail to update a subnote (No title)", async () => {
+                const response = await request(app)
+                    .put('/notes/subnote')
+                    .set('Authorization', token)
+                    .send({
+                        id_sub_note: subnote._id,
+                        content: 'test_update',
+                        id_note: note._id
+                    });
+                expect(response.statusCode).to.equal(200);
+                expect(response.body.success).to.equal(true);
+                expect(response.body.message).to.equal('Subnote updated');
+            });
+            it("Should return fail to update a subnote (No content + no title)", async () => {
+                const response = await request(app)
+                    .put('/notes/subnote')
+                    .set('Authorization', token)
+                    .send({
+                        id_sub_note: subnote._id,
+                        id_note: note._id
+                    });
+                expect(response.statusCode).to.equal(400);
+                expect(response.body.success).to.equal(false);
+                expect(response.body.message).to.equal('Complete all fields');
+            })
+        });
+        describe("Test to delete a subnote", () => {
+
         });
     });
 });

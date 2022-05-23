@@ -19,6 +19,7 @@ async function getNotes(req, res) {
 
     return res.status(200).send({
         success: true,
+        message: 'Notes found',
         notes: notes
     });
 
@@ -29,11 +30,13 @@ async function getNote(req, res){
     if (!id_note) {
         return res.status(400).json({
             success: false,
-            message: 'Note not found'
+            message: 'Please enter all fields'
         })
     }
-    let note = await Notes.findOne({_id: id_note});
-    if (!note) {
+    let note = null
+    try{
+        note = await Notes.findOne({_id: id_note});
+    }catch (e) {
         return res.status(400).json({
             success: false,
             message: 'Note not found'
@@ -51,18 +54,21 @@ async function getSubNote(req, res){
     if (!id_sub_note) {
         return res.status(400).json({
             success: false,
-            message: 'SubNote not found'
+            message: 'Subnote not found'
         })
     }
-    let subnote = await SubNote.findOne({_id: id_sub_note});
-    if (!subnote) {
+    let subnote = null
+    try {
+        subnote = await SubNote.findOne({_id: id_sub_note});
+    }catch (e) {
         return res.status(400).json({
             success: false,
-            message: 'SubNote not found'
+            message: 'Subnote not found'
         })
     }
     return res.status(200).send({
         success: true,
+        message: 'Subnote found',
         subnote: subnote
     });
 }
@@ -116,25 +122,22 @@ async function createNote(req, res){
 
 async function createSubNote(req, res){
     let {id_note, content} = req.body;
-    if (!id_note) {
-        return res.status(400).json({
-            success: false,
-            message: 'Note not found'
-        })
-    }
-    if (!content) {
+    if (!id_note || !content) {
         return res.status(400).json({
             success: false,
             message: 'Complete all fields'
         })
     }
-    let note = await Notes.findOne({_id: id_note});
-    if (!note) {
-        return res.status(400).json({
+    let note = null
+    try {
+        note = await Notes.findOne({_id: id_note});
+    }catch (e) {
+        return res.status(402).json({
             success: false,
             message: 'Note not found'
         })
     }
+
     let sub = new SubNote({
         content: content,
     });
@@ -145,14 +148,15 @@ async function createSubNote(req, res){
         await sub.save();
         await note.save();
     }catch (e) {
-        return res.status(400).json({
+        return res.status(403).json({
             success: false,
-            message: 'Sub note not saved'
+            message: 'Subnote not saved'
         })
     }
     return res.status(200).send({
         success: true,
-        note: note
+        message: 'Subnote created',
+        subnote: sub
     });
 }
 
@@ -164,13 +168,29 @@ async function updateSubNote(req, res){
             message: 'Id note not found'
         })
     }
-    let subnote = await SubNote.findOne({_id: id_sub_note});
-    let note = await Notes.findOne({_id: id_note});
+    if (!title && !content) {
+        return res.status(400).json({
+            success: false,
+            message: 'Complete all fields'
+        })
+    }
+    let note = null;
+    let subnote = null;
+    try {
+        subnote = await SubNote.findOne({_id: id_sub_note});
+        note = await Notes.findOne({_id: id_note});
+    }catch (e) {
+        return res.status(400).json({
+            success: false,
+            message: 'Invalid Note or Subnote id'
+        })
+    }
+
 
     if (!subnote) {
         return res.status(400).json({
             success: false,
-            message: 'SubNote not found'
+            message: 'Subnote not found'
         })
     }
 
@@ -202,7 +222,8 @@ async function updateSubNote(req, res){
     }
     return res.status(200).send({
         success: true,
-        note: note
+        message: 'Subnote updated',
+        subnote: subnote
     });
 }
 
@@ -220,13 +241,23 @@ async function updateNote(req, res){
             message: 'Complete all fields'
         })
     }
-    let note = await Notes.findOne({_id: id_note});
+    let note = null;
+    try {
+        note = await Notes.findOne({_id: id_note});
+    }catch (e) {
+        return res.status(400).json({
+            success: false,
+            message: 'Note not found'
+        })
+    }
+
     note.title = title;
     note.updated_at = Date.now();
     note.save();
 
     return res.status(200).send({
         success: true,
+        message: 'Note updated',
         note: note
     });
 }
@@ -239,18 +270,38 @@ async function deleteNote(req, res){
             message: 'Note not found'
         })
     }
-    Notes.deleteOne({_id: id_note}, function (err) {
-        if (err) {
-            return res.status(400).json({
-                success: false,
-                message: 'Note not deleted'
-            })
-        }
-        return res.status(200).send({
-            success: true,
-            message: 'Note deleted'
-        });
+    let note = null;
+    try {
+        note = await Notes.findOne({_id: id_note});
+    }
+    catch (e) {
+        return res.status(400).json({
+            success: false,
+            message: 'Note not found'
+        })
+    }
+    for(let i = 0; i < note.list_Notes.length; i++){
+        let sub = await SubNote.findOne({_id: note.list_Notes[i]});
+        sub.remove();
+    }
+    note.remove();
+    return res.status(200).send({
+        success: true,
+        message: 'Note deleted'
     });
+
+    // Notes.deleteOne({_id: id_note}, function (err) {
+    //     if (err) {
+    //         return res.status(400).json({
+    //             success: false,
+    //             message: 'Note not deleted'
+    //         })
+    //     }
+    //     return res.status(200).send({
+    //         success: true,
+    //         message: 'Note deleted'
+    //     });
+    // });
 }
 
 async function deleteSubNote(req, res){
@@ -258,19 +309,19 @@ async function deleteSubNote(req, res){
     if (!id_sub_note) {
         return res.status(400).json({
             success: false,
-            message: 'SubNote not found'
+            message: 'Subnote not found'
         })
     }
     SubNote.deleteOne({_id: id_sub_note}, function (err) {
         if (err) {
             return res.status(400).json({
                 success: false,
-                message: 'SubNote not deleted'
+                message: 'Subnote not deleted'
             })
         }
         return res.status(200).send({
             success: true,
-            message: 'SubNote deleted'
+            message: 'Subnote deleted'
         });
     });
 }

@@ -13,10 +13,10 @@ router.post('/note', [notesMiddleware.VerifyToken, notesMiddleware.GetUser, note
 router.put('/note', [notesMiddleware.VerifyToken, notesMiddleware.GetUser, notesController.updateNote]);
 router.delete('/note', [notesMiddleware.VerifyToken, notesMiddleware.GetUser, notesController.deleteNote]);
 
-router.get("/sub_note", [notesMiddleware.VerifyToken, notesMiddleware.GetUser, notesController.getSubNote]);
-router.post("/sub_note", [notesMiddleware.VerifyToken, notesMiddleware.GetUser, notesController.createSubNote]);
+router.get("/subnote", [notesMiddleware.VerifyToken, notesMiddleware.GetUser, notesController.getSubNote]);
+router.post("/subnote", [notesMiddleware.VerifyToken, notesMiddleware.GetUser, notesController.createSubNote]);
 router.put('/subnote', [notesMiddleware.VerifyToken, notesMiddleware.GetUser, notesController.updateSubNote]);
-router.delete('/sub_note', [notesMiddleware.VerifyToken, notesMiddleware.GetUser, notesController.deleteSubNote]);
+router.delete('/subnote', [notesMiddleware.VerifyToken, notesMiddleware.GetUser, notesController.deleteSubNote]);
 
 
 
